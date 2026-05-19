@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useStore } from '../store'
 import RoutineCard from '../components/Routines/RoutineCard'
 import RoutineEditor from '../components/Routines/RoutineEditor'
 import ImportModal from '../components/Routines/ImportModal'
+import TextToRoutineModal from '../components/TextToRoutine/TextToRoutineModal'
 import type { Routine, Category } from '../types'
 
 interface Props {
@@ -12,9 +13,10 @@ interface Props {
 const CATEGORIES: (Category | 'all')[] = ['all', 'gym', 'skincare', 'study', 'tasks', 'custom']
 
 export default function RoutinesScreen({ onPlay }: Props) {
-  const { routines, deleteRoutine, duplicateRoutine } = useStore()
+  const { routines, deleteRoutine, duplicateRoutine, toggleFavorite } = useStore()
   const [editingRoutine, setEditingRoutine] = useState<Routine | null | 'new'>(null)
   const [showImport, setShowImport] = useState(false)
+  const [showTextModal, setShowTextModal] = useState(false)
   const [filter, setFilter] = useState<Category | 'all'>('all')
   const [search, setSearch] = useState('')
 
@@ -34,11 +36,23 @@ export default function RoutinesScreen({ onPlay }: Props) {
     if (confirm('Delete this routine?')) deleteRoutine(id)
   }
 
-  const filtered = routines.filter((r) => {
-    const matchCat = filter === 'all' || r.category === filter
-    const matchSearch = search === '' || r.name.toLowerCase().includes(search.toLowerCase())
-    return matchCat && matchSearch
-  })
+  // Filter and sort: favorites first within filter
+  const filtered = useMemo(() => {
+    const base = routines.filter((r) => {
+      const matchCat = filter === 'all' || r.category === filter
+      const matchSearch = search === '' || r.name.toLowerCase().includes(search.toLowerCase())
+      return matchCat && matchSearch
+    })
+    // Favorites first
+    return [...base].sort((a, b) => {
+      if (a.favorite && !b.favorite) return -1
+      if (!a.favorite && b.favorite) return 1
+      return 0
+    })
+  }, [routines, filter, search])
+
+  const favorites = useMemo(() => filtered.filter((r) => r.favorite), [filtered])
+  const nonFavorites = useMemo(() => filtered.filter((r) => !r.favorite), [filtered])
 
   if (editingRoutine !== null) {
     return (
@@ -61,6 +75,12 @@ export default function RoutinesScreen({ onPlay }: Props) {
               className="text-sm px-3 py-1.5 rounded-xl bg-slate-700 text-slate-300"
             >
               Import
+            </button>
+            <button
+              onClick={() => setShowTextModal(true)}
+              className="text-sm px-3 py-1.5 rounded-xl bg-slate-700 text-slate-300"
+            >
+              From Text
             </button>
             <button
               onClick={() => setEditingRoutine('new')}
@@ -111,21 +131,60 @@ export default function RoutinesScreen({ onPlay }: Props) {
             </button>
           </div>
         ) : (
-          filtered.map((routine) => (
-            <RoutineCard
-              key={routine.id}
-              routine={routine}
-              onEdit={(id) => setEditingRoutine(routines.find((r) => r.id === id) ?? null)}
-              onDuplicate={duplicateRoutine}
-              onDelete={handleDelete}
-              onPlay={onPlay}
-              onExport={handleExport}
-            />
-          ))
+          <>
+            {/* Favorites section */}
+            {favorites.length > 0 && (
+              <section>
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">
+                  ⭐ Favorites
+                </h2>
+                <div className="space-y-3">
+                  {favorites.map((routine) => (
+                    <RoutineCard
+                      key={routine.id}
+                      routine={routine}
+                      onEdit={(id) => setEditingRoutine(routines.find((r) => r.id === id) ?? null)}
+                      onDuplicate={duplicateRoutine}
+                      onDelete={handleDelete}
+                      onPlay={onPlay}
+                      onExport={handleExport}
+                      onToggleFavorite={toggleFavorite}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Non-favorites (or all if no favorites) */}
+            {nonFavorites.length > 0 && (
+              <section>
+                {favorites.length > 0 && (
+                  <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3 mt-2">
+                    All Routines
+                  </h2>
+                )}
+                <div className="space-y-3">
+                  {nonFavorites.map((routine) => (
+                    <RoutineCard
+                      key={routine.id}
+                      routine={routine}
+                      onEdit={(id) => setEditingRoutine(routines.find((r) => r.id === id) ?? null)}
+                      onDuplicate={duplicateRoutine}
+                      onDelete={handleDelete}
+                      onPlay={onPlay}
+                      onExport={handleExport}
+                      onToggleFavorite={toggleFavorite}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
         )}
       </div>
 
       {showImport && <ImportModal onClose={() => setShowImport(false)} />}
+      {showTextModal && <TextToRoutineModal onClose={() => setShowTextModal(false)} />}
     </div>
   )
 }

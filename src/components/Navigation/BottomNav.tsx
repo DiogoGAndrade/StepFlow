@@ -8,7 +8,8 @@ interface Props {
 const tabs: { id: Screen; label: string; icon: string }[] = [
   { id: 'today', label: 'Today', icon: '☀️' },
   { id: 'routines', label: 'Routines', icon: '📋' },
-  { id: 'history', label: 'History', icon: '📊' }
+  { id: 'history', label: 'History', icon: '📊' },
+  { id: 'settings', label: 'Settings', icon: '⚙️' }
 ]
 
 export default function BottomNav({ current, onChange }: Props) {

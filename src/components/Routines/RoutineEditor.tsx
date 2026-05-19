@@ -34,6 +34,9 @@ export default function RoutineEditor({ routine, onClose }: Props) {
   const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>(routine?.timeOfDay ?? 'morning')
   const [days, setDays] = useState<DayOfWeek[]>(routine?.days ?? [])
   const [isSpecialOccasion, setIsSpecialOccasion] = useState(routine?.isSpecialOccasion ?? false)
+  const [scheduledTime, setScheduledTime] = useState(routine?.scheduledTime ?? '')
+  const [showTimeInput, setShowTimeInput] = useState(!!(routine?.scheduledTime))
+  const [notificationEnabled, setNotificationEnabled] = useState(routine?.notificationEnabled ?? false)
   const [steps, setSteps] = useState<Step[]>(routine?.steps ?? [])
   const [editingStep, setEditingStep] = useState<Step | null>(null)
   const [expandedStep, setExpandedStep] = useState<string | null>(null)
@@ -64,6 +67,8 @@ export default function RoutineEditor({ routine, onClose }: Props) {
       timeOfDay,
       days,
       isSpecialOccasion,
+      scheduledTime: showTimeInput && scheduledTime ? scheduledTime : undefined,
+      notificationEnabled: notificationEnabled || undefined,
       steps,
       estimatedDuration: estimateDuration(steps),
       createdAt: routine?.createdAt ?? now,
@@ -181,6 +186,47 @@ export default function RoutineEditor({ routine, onClose }: Props) {
             </div>
           </div>
 
+          {/* Scheduled time — shown always when timeOfDay='manual', togglable otherwise */}
+          {timeOfDay === 'manual' ? (
+            <div>
+              <label className="block text-xs text-slate-400 mb-1.5 font-medium uppercase tracking-wide">
+                Scheduled Time
+              </label>
+              <input
+                type="time"
+                value={scheduledTime}
+                onChange={(e) => setScheduledTime(e.target.value)}
+                className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-white">Set specific time</p>
+                <button
+                  onClick={() => setShowTimeInput((v) => !v)}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${
+                    showTimeInput ? 'bg-indigo-500' : 'bg-slate-700'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                      showTimeInput ? 'translate-x-7' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+              {showTimeInput && (
+                <input
+                  type="time"
+                  value={scheduledTime}
+                  onChange={(e) => setScheduledTime(e.target.value)}
+                  className="mt-2 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+                />
+              )}
+            </div>
+          )}
+
           {/* Days */}
           {!isSpecialOccasion && (
             <div>
@@ -220,6 +266,26 @@ export default function RoutineEditor({ routine, onClose }: Props) {
               <span
                 className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
                   isSpecialOccasion ? 'translate-x-7' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Enable reminder notification */}
+          <div className="flex items-center justify-between">
+            <div className="flex-1 pr-4">
+              <p className="text-sm font-medium text-white">Enable Reminder</p>
+              <p className="text-xs text-slate-500">Requires notification permission in Settings</p>
+            </div>
+            <button
+              onClick={() => setNotificationEnabled((v) => !v)}
+              className={`w-12 h-6 rounded-full transition-colors relative flex-shrink-0 ${
+                notificationEnabled ? 'bg-indigo-500' : 'bg-slate-700'
+              }`}
+            >
+              <span
+                className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+                  notificationEnabled ? 'translate-x-7' : 'translate-x-1'
                 }`}
               />
             </button>

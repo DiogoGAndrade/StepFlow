@@ -1,10 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useStore } from '../../store'
-import type { Step, CompletedSession } from '../../types'
+import type { Step, CompletedSession, Category } from '../../types'
 
 interface Props {
   routineId: string
   onClose: () => void
+}
+
+// ---- Mood map for background music ----
+const MOOD_MAP: Record<Category, string> = {
+  gym: 'energetic',
+  skincare: 'calm',
+  study: 'focus',
+  tasks: 'calm',
+  custom: 'calm'
 }
 
 // ---- Audio helpers ----
@@ -69,7 +78,7 @@ type PhaseState =
   | { kind: 'rest'; setsDone: number; totalSets: number }
 
 export default function PlayerScreen({ routineId, onClose }: Props) {
-  const { routines, addSession } = useStore()
+  const { routines, addSession, settings } = useStore()
   const routine = routines.find((r) => r.id === routineId)
 
   const [stepIdx, setStepIdx] = useState(0)
@@ -81,15 +90,63 @@ export default function PlayerScreen({ routineId, onClose }: Props) {
   const [completedSteps, setCompletedSteps] = useState(0)
   const [sessionStart] = useState(Date.now())
   const [voiceEnabled, setVoiceEnabled] = useState(true)
+  const [musicMuted, setMusicMuted] = useState(settings.music.muted)
 
   const audioCtxRef = useRef<AudioContext | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const musicRef = useRef<HTMLAudioElement | null>(null)
+  const musicStartedRef = useRef(false)
 
   function getAudioCtx() {
     if (!audioCtxRef.current) {
       audioCtxRef.current = new AudioContext()
     }
     return audioCtxRef.current
+  }
+
+  // Determine if music should be enabled for this category
+  const categoryMusicEnabled =
+    settings.music.enabled &&
+    (settings.music.perCategory[routine?.category ?? 'custom'] ?? false)
+
+  // Start music on mount if enabled for this category
+  useEffect(() => {
+    if (!routine || !categoryMusicEnabled) return
+    if (musicStartedRef.current) return
+    musicStartedRef.current = true
+
+    const mood = MOOD_MAP[routine.category]
+    const src = `/StepFlow/audio/${routine.category}-${mood}.mp3`
+    const audio = new Audio(src)
+    audio.loop = true
+    audio.volume = settings.music.muted || musicMuted ? 0 : settings.music.volume
+    audio.play().catch(() => {
+      // File not found or autoplay blocked — fail silently
+    })
+    musicRef.current = audio
+
+    return () => {
+      audio.pause()
+      audio.src = ''
+      musicRef.current = null
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Sync music mute state
+  useEffect(() => {
+    if (!musicRef.current) return
+    musicRef.current.volume = musicMuted ? 0 : settings.music.volume
+  }, [musicMuted, settings.music.volume])
+
+  // Stop music on close
+  function handleClose() {
+    if (musicRef.current) {
+      musicRef.current.pause()
+      musicRef.current.src = ''
+      musicRef.current = null
+    }
+    onClose()
   }
 
   const step = routine?.steps[stepIdx]
@@ -102,12 +159,20 @@ export default function PlayerScreen({ routineId, onClose }: Props) {
     ? step.restDuration ?? 60
     : null
 
+  // ---- Voice with settings ----
   function speak(text: string) {
     if (!voiceEnabled) return
     if (!('speechSynthesis' in window)) return
     window.speechSynthesis.cancel()
     const utt = new SpeechSynthesisUtterance(text)
-    utt.rate = 0.95
+    utt.rate = settings.voice.rate
+    utt.pitch = settings.voice.pitch
+    if (settings.voice.voiceURI) {
+      const found = window.speechSynthesis.getVoices().find(
+        (v) => v.voiceURI === settings.voice.voiceURI
+      )
+      if (found) utt.voice = found
+    }
     window.speechSynthesis.speak(utt)
   }
 
@@ -115,16 +180,30 @@ export default function PlayerScreen({ routineId, onClose }: Props) {
     (s: Step, ph: PhaseState, set?: number) => {
       if (!voiceEnabled) return
       if (ph.kind === 'rest') {
-        speak(`Rest. ${s.restDuration ?? 60} seconds.`)
+        speak(`Rest for ${s.restDuration ?? 60} seconds.`)
         return
       }
-      const text =
-        s.voiceText ??
-        (s.type === 'reps'
-          ? `${s.name}. Set ${set ?? 1} of ${s.sets ?? 1}. ${s.reps} reps.`
-          : s.type === 'timer'
-          ? `${s.name}. ${s.duration} seconds.`
-          : s.name)
+      if (s.voiceText) {
+        speak(s.voiceText)
+        return
+      }
+      let text: string
+      switch (s.type) {
+        case 'reps':
+          text = `Time for ${s.name}. Set ${set ?? 1} of ${s.sets ?? 1}. Do ${s.reps} reps.`
+          break
+        case 'timer':
+          text = `${s.name}. ${s.duration} seconds.`
+          break
+        case 'rest':
+          text = `Rest for ${s.duration ?? 60} seconds.`
+          break
+        case 'check':
+          text = s.product ? `Apply ${s.product} now.` : s.name
+          break
+        default:
+          text = s.name
+      }
       speak(text)
     },
     [voiceEnabled] // eslint-disable-line react-hooks/exhaustive-deps
@@ -178,7 +257,6 @@ export default function PlayerScreen({ routineId, onClose }: Props) {
     if (step.type === 'reps' && phase.kind === 'step') {
       const totalSets = step.sets ?? 1
       if (currentSet < totalSets) {
-        // Go to rest phase
         setPhase({ kind: 'rest', setsDone: currentSet, totalSets })
         return
       }
@@ -217,7 +295,7 @@ export default function PlayerScreen({ routineId, onClose }: Props) {
     addSession(session)
     if (voiceEnabled) speak('Routine complete! Great job!')
     beepEnd(getAudioCtx())
-    onClose()
+    handleClose()
   }
 
   function handleStart() {
@@ -264,7 +342,7 @@ export default function PlayerScreen({ routineId, onClose }: Props) {
     <div className="fixed inset-0 z-50 bg-slate-900 flex flex-col">
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 pt-10 pb-3">
-        <button onClick={onClose} className="text-slate-400 text-sm">✕ Exit</button>
+        <button onClick={handleClose} className="text-slate-400 text-sm">✕ Exit</button>
         <div className="text-center">
           <p className="text-xs text-slate-500">{routine.name}</p>
           <p className="text-xs text-slate-600">
@@ -278,6 +356,15 @@ export default function PlayerScreen({ routineId, onClose }: Props) {
           >
             🔊
           </button>
+          {categoryMusicEnabled && (
+            <button
+              onClick={() => setMusicMuted((v) => !v)}
+              className={`text-sm px-2 py-1 rounded-lg ${musicMuted ? 'text-slate-600' : 'text-green-400'}`}
+              title={musicMuted ? 'Unmute music' : 'Mute music'}
+            >
+              🎵
+            </button>
+          )}
           <button onClick={toggleFullscreen} className="text-slate-500 text-sm px-2 py-1 rounded-lg">
             ⛶
           </button>
@@ -319,7 +406,7 @@ export default function PlayerScreen({ routineId, onClose }: Props) {
           )}
           {step.warning && (
             <p className="text-yellow-400 text-xs mt-2 bg-yellow-500/10 px-3 py-1 rounded-lg">
-              ⚠️ {step.warning}
+              {step.warning}
             </p>
           )}
           {step.description && phase.kind !== 'rest' && (

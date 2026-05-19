@@ -1,5 +1,4 @@
-import { v4 as uuidv4 } from 'uuid'
-import type { Routine, Step, StepType, Category, TimeOfDay, DayOfWeek } from '../types'
+import type { Routine, Step, Category, TimeOfDay, DayOfWeek } from '../types'
 
 export interface ParseResult {
   routine: Routine

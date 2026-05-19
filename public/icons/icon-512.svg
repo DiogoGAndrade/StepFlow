@@ -1,7 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="80" fill="#0f172a"/>
-  <rect x="64" y="64" width="384" height="384" rx="56" fill="#6366f1"/>
-  <path d="M160 214 L214 268 L352 160" stroke="white" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  <rect x="160" y="308" width="192" height="28" rx="14" fill="white" opacity="0.6"/>
-  <rect x="160" y="354" width="128" height="28" rx="14" fill="white" opacity="0.4"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <!-- Background rounded square -->
+  <rect width="512" height="512" rx="128" fill="#4f46e5"/>
+  <!-- Staircase bars (left side) -->
+  <rect x="64" y="300" width="64" height="148" rx="16" fill="white" opacity="0.95"/>
+  <rect x="150" y="234" width="64" height="214" rx="16" fill="white" opacity="0.95"/>
+  <rect x="236" y="168" width="64" height="280" rx="16" fill="white" opacity="0.95"/>
+  <!-- Circle with checkmark (right side) -->
+  <circle cx="394" cy="256" r="74" fill="white" opacity="0.15"/>
+  <circle cx="394" cy="256" r="74" stroke="white" stroke-width="18" opacity="0.95"/>
+  <path d="M358 258 L385 285 L432 228" stroke="white" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
 </svg>

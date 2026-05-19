@@ -7,6 +7,7 @@ interface Props {
   onDelete: (id: string) => void
   onPlay: (id: string) => void
   onExport: (id: string) => void
+  onToggleFavorite: (id: string) => void
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -29,13 +30,22 @@ function formatDuration(mins: number) {
   return `${Math.floor(mins / 60)}h ${mins % 60}m`
 }
 
-export default function RoutineCard({ routine, onEdit, onDuplicate, onDelete, onPlay, onExport }: Props) {
+export default function RoutineCard({
+  routine,
+  onEdit,
+  onDuplicate,
+  onDelete,
+  onPlay,
+  onExport,
+  onToggleFavorite
+}: Props) {
   const isAllDays = ALL_DAYS.every((d) => routine.days.includes(d as Routine['days'][number]))
 
   return (
     <div className="bg-slate-800 rounded-2xl border border-slate-700 p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
+          {/* Badges row */}
           <div className="flex flex-wrap gap-2 items-center">
             <span
               className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
@@ -45,12 +55,16 @@ export default function RoutineCard({ routine, onEdit, onDuplicate, onDelete, on
               {routine.category}
             </span>
             <span className="text-xs text-slate-500">{routine.timeOfDay}</span>
+            {routine.scheduledTime && (
+              <span className="text-xs text-slate-400">@ {routine.scheduledTime}</span>
+            )}
             {routine.isSpecialOccasion && (
-              <span className="text-xs px-2 py-0.5 rounded-full border border-yellow-500/30 bg-yellow-500/10 text-yellow-300">
-                occasion
+              <span className="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full border border-amber-500/40 bg-amber-500/15 text-amber-300 font-semibold">
+                ✨ Special
               </span>
             )}
           </div>
+
           <h3 className="mt-2 font-semibold text-white text-base truncate">{routine.name}</h3>
           <p className="text-slate-500 text-sm mt-0.5">
             {routine.steps.length} steps · {formatDuration(routine.estimatedDuration)}
@@ -79,12 +93,24 @@ export default function RoutineCard({ routine, onEdit, onDuplicate, onDelete, on
           )}
         </div>
 
-        <button
-          onClick={() => onPlay(routine.id)}
-          className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-white flex-shrink-0 active:scale-95 transition-transform"
-        >
-          ▶
-        </button>
+        {/* Right side: favorite + play */}
+        <div className="flex flex-col items-end gap-2">
+          <button
+            onClick={() => onToggleFavorite(routine.id)}
+            className={`text-xl leading-none transition-colors ${
+              routine.favorite ? 'text-yellow-400' : 'text-slate-600 hover:text-slate-400'
+            }`}
+            aria-label={routine.favorite ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            {routine.favorite ? '★' : '☆'}
+          </button>
+          <button
+            onClick={() => onPlay(routine.id)}
+            className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-white flex-shrink-0 active:scale-95 transition-transform"
+          >
+            ▶
+          </button>
+        </div>
       </div>
 
       {/* Actions */}

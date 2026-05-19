@@ -4,6 +4,7 @@ import BottomNav from './components/Navigation/BottomNav'
 import TodayScreen from './screens/TodayScreen'
 import RoutinesScreen from './screens/RoutinesScreen'
 import HistoryScreen from './screens/HistoryScreen'
+import SettingsScreen from './screens/SettingsScreen'
 import PlayerScreen from './components/Player/PlayerScreen'
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
       {screen === 'today' && <TodayScreen onPlay={handlePlay} />}
       {screen === 'routines' && <RoutinesScreen onPlay={handlePlay} />}
       {screen === 'history' && <HistoryScreen />}
+      {screen === 'settings' && <SettingsScreen />}
 
       <BottomNav current={screen} onChange={setScreen} />
 
