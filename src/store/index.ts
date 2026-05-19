@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Routine, CompletedSession } from '../types'
 import { sampleRoutines } from '../data/sampleRoutines'
+import { zustandStorage } from '../services/storage'
 
 interface AppState {
   routines: Routine[]
@@ -52,6 +53,7 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'stepflow-storage',
+      storage: zustandStorage,
       onRehydrateStorage: () => (state) => {
         if (state && !state.initialized) {
           state.routines = sampleRoutines
