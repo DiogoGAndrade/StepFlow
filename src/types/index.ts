@@ -31,6 +31,9 @@ export interface Routine {
   timeOfDay: TimeOfDay
   days: DayOfWeek[]
   isSpecialOccasion?: boolean
+  favorite?: boolean
+  scheduledTime?: string        // HH:mm format
+  notificationEnabled?: boolean
   steps: Step[]
   estimatedDuration: number
   createdAt: string
@@ -48,4 +51,24 @@ export interface CompletedSession {
   totalSteps: number
 }
 
-export type Screen = 'today' | 'routines' | 'history'
+export interface VoiceSettings {
+  voiceURI: string | null
+  language: string
+  rate: number   // 0.5–2.0, default 0.95
+  pitch: number  // 0.5–2.0, default 1.0
+}
+
+export interface MusicSettings {
+  enabled: boolean
+  volume: number  // 0–1, default 0.3
+  muted: boolean
+  perCategory: Partial<Record<Category, boolean>>
+}
+
+export interface AppSettings {
+  voice: VoiceSettings
+  music: MusicSettings
+  notificationsGranted: boolean
+}
+
+export type Screen = 'today' | 'routines' | 'history' | 'settings'
